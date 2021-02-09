@@ -48,9 +48,9 @@ class BreakTimerIndicator extends PanelMenu.Button {
     let pct = this.elapsed / 60 / (this.settings.get_int("minutes") || 20);
 
     if (!enabled) [res, c] = Clutter.Color.from_string("#666");
-    else if (pct >= 1) [res, c] = Clutter.Color.from_string("#c22");
-    else if (pct >= 0.8) [res, c] = Clutter.Color.from_string("#855");
-    else if (pct >= 0.9) [res, c] = Clutter.Color.from_string("#a33");
+    else if (pct >= 0.9) [res, c] = Clutter.Color.from_string("#c22");
+    else if (pct >= 0.8) [res, c] = Clutter.Color.from_string("#a33");
+    else if (pct >= 0.7) [res, c] = Clutter.Color.from_string("#855");
 
     Clutter.cairo_set_source_color(cr, c);
 
@@ -144,16 +144,16 @@ class BreakTimerIndicator extends PanelMenu.Button {
       let adj = idleSeconds / 30 > 0.8 ? -Math.max(idleSeconds, 30) : 30;
       this.elapsed = Math.max(0, this.elapsed + adj);
 
-      this.meter.queue_repaint();
-
-      Mainloop.timeout_add_seconds(30, Lang.bind(this, this.refreshTimer, timerId, initialMinutes));
-
       if (this.elapsed / 60 >= minutes) {
         this.timerFinished();
       } else if (this.source) {
         this.source.destroy();
         this.source = null;
       }
+
+      this.meter.queue_repaint();
+
+      Mainloop.timeout_add_seconds(30, Lang.bind(this, this.refreshTimer, timerId, initialMinutes));
     } catch (e) {
       debug("error: " + e.toString() + "\n" + e.stack);
     }
@@ -162,6 +162,7 @@ class BreakTimerIndicator extends PanelMenu.Button {
   }
 
   timerFinished() {
+    this.elapsed = 0;
     let message = this.settings.get_string("message");
     if (message && !this.destroyed) {
       if (!this.source) {
