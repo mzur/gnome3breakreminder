@@ -11,6 +11,8 @@ const Util = Me.imports.util;
 
 const debug = (...messages) => {};
 
+const REFRESH_SECONDS = 30;
+
 class BreakTimerIndicator extends PanelMenu.Button {
   _init() {
     super._init(0.0, "Break Reminder");
@@ -39,7 +41,6 @@ class BreakTimerIndicator extends PanelMenu.Button {
     let enabled = this.settings.get_boolean("enabled");
 
     let cr = this.meter.get_context();
-    let [res, c] = Clutter.Color.from_string("#ccc");
     let xc = width / 2;
     let yc = height / 2;
     let scale = Math.min(xc, yc) / 2;
@@ -47,10 +48,9 @@ class BreakTimerIndicator extends PanelMenu.Button {
 
     let pct = this.elapsed / 60 / (this.settings.get_int("minutes") || 20);
 
+    let [res, c] = Clutter.Color.from_string("#ccc");
     if (!enabled) [res, c] = Clutter.Color.from_string("#666");
-    else if (pct >= 0.9) [res, c] = Clutter.Color.from_string("#c22");
-    else if (pct >= 0.8) [res, c] = Clutter.Color.from_string("#a33");
-    else if (pct >= 0.7) [res, c] = Clutter.Color.from_string("#855");
+    else if (pct >= 1) [res, c] = Clutter.Color.from_string("#c22");
 
     Clutter.cairo_set_source_color(cr, c);
 
@@ -76,11 +76,14 @@ class BreakTimerIndicator extends PanelMenu.Button {
     cr.arc(0, 0, r * 1.1, start, end);
     cr.stroke();
 
-    if (pct < 1 && enabled) [res, c] = Clutter.Color.from_string("#080");
-    pct = Math.min(end, pct * (end - start) + start);
-    Clutter.cairo_set_source_color(cr, c);
-    cr.arc(0, 0, r * 1.1, Math.max(pct - 0.5, start), pct);
-    cr.stroke();
+    if (enabled) {
+      if (pct < 1) [res, c] = Clutter.Color.from_string("#666");
+
+      pct = Math.min(end, pct * (end - start) + start);
+      Clutter.cairo_set_source_color(cr, c);
+      cr.arc(0, 0, r * 1.1, start, pct);
+      cr.stroke();
+    }
   }
 
   buildMenu() {
@@ -141,7 +144,7 @@ class BreakTimerIndicator extends PanelMenu.Button {
         debug("Error getting idle amount.  Is xprintidle installed?");
       }
 
-      let adj = idleSeconds / 30 > 0.8 ? -Math.max(idleSeconds, 30) : 30;
+      let adj = idleSeconds / REFRESH_SECONDS > 0.8 ? -Math.max(idleSeconds, REFRESH_SECONDS) : REFRESH_SECONDS;
       this.elapsed = Math.max(0, this.elapsed + adj);
 
       if (this.elapsed / 60 >= minutes) {
@@ -153,7 +156,7 @@ class BreakTimerIndicator extends PanelMenu.Button {
 
       this.meter.queue_repaint();
 
-      Mainloop.timeout_add_seconds(30, Lang.bind(this, this.refreshTimer, timerId, initialMinutes));
+      Mainloop.timeout_add_seconds(REFRESH_SECONDS, Lang.bind(this, this.refreshTimer, timerId, initialMinutes));
     } catch (e) {
       debug("error: " + e.toString() + "\n" + e.stack);
     }
